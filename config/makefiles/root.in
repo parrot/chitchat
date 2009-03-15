@@ -2,86 +2,111 @@
 ## $Id$
 
 ## arguments we want to run parrot with
-PARROT_ARGS =
+PARROT_ARGS   :=
 
 ## configuration settings
-BUILD_DIR     = @build_dir@
-LOAD_EXT      = @load_ext@
-O             = @o@
+VERSION       := @versiondir@
+BIN_DIR       := @bin_dir@
+LIB_DIR       := @lib_dir@$(VERSION)
+DOC_DIR       := @doc_dir@$(VERSION)
+MANDIR        := @mandir@$(VERSION)
+
+# Set up extensions
+LOAD_EXT      := @load_ext@
+O             := @o@
+
+# Various paths
+PERL6GRAMMAR  := $(LIB_DIR)/library/PGE/Perl6Grammar.pbc
+NQP           := $(LIB_DIR)/languages/nqp/nqp.pbc
+PCT           := $(LIB_DIR)/library/PCT.pbc
 
 ## Setup some commands
-LN_S          = @lns@
-PERL          = @perl@
-RM_RF         = @rm_rf@
-CP            = @cp@
-PARROT        = ../../parrot@exe@
-CAT           = @cat@
-BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
-RECONFIGURE   = $(PERL) $(BUILD_DIR)/tools/dev/reconfigure.pl
-#CONDITIONED_LINE(darwin):
-#CONDITIONED_LINE(darwin):# MACOSX_DEPLOYMENT_TARGET must be defined for OS X compilation/linking
-#CONDITIONED_LINE(darwin):export MACOSX_DEPLOYMENT_TARGET := @osx_version@
+MAKE          := @make_c@
+PERL          := @perl@
+CAT           := @cat@
+CHMOD         := @chmod@
+CP            := @cp@
+MKPATH        := @mkpath@
+RM_F          := @rm_f@
+RM_RF         := @rm_rf@
+POD2MAN       := pod2man
+#IF(parrot_is_shared and not(cygwin or win32)):export LD_RUN_PATH := @blib_dir@:$(LD_RUN_PATH)
+PARROT        := $(BIN_DIR)/parrot@exe@
+PBC_TO_EXE    := $(BIN_DIR)/pbc_to_exe@exe@
+#IF(darwin):
+#IF(darwin):# MACOSX_DEPLOYMENT_TARGET must be defined for OS X compilation/linking
+#IF(darwin):export MACOSX_DEPLOYMENT_TARGET := @osx_version@
 
-## places to look for things
-PARROT_DYNEXT = $(BUILD_DIR)/runtime/parrot/dynext
-PGE_LIBRARY   = $(BUILD_DIR)/runtime/parrot/library/PGE
-PERL6GRAMMAR  = $(PGE_LIBRARY)/Perl6Grammar.pbc
-NQP           = $(BUILD_DIR)/compilers/nqp/nqp.pbc
-PCT           = $(BUILD_DIR)/runtime/parrot/library/PCT.pbc
-
-PMC_DIR       = src/pmc
-
-all: chitchat.pbc
-
-CHITCHAT_GROUP = $(PMC_DIR)/chitchat_group$(LOAD_EXT)
-
-SOURCES = chitchat.pir \
+SOURCES := \
   src/gen_grammar.pir \
   src/gen_actions.pir \
   src/gen_builtins.pir \
-#  $(CHITCHAT_GROUP)
+  chitchat.pir
 
-BUILTINS_PIR = \
-  src/builtins/say.pir \
+BUILTINS_PIR := \
+  src/builtins/say.pir
 
-# PMCS = chitchat
-# PMC_SOURCES = $(PMC_DIR)/chitchat.pmc
+DOCS :=
+
+BUILD_CLEANUPS := \
+  chitchat.pbc \
+  "src/gen_*.pir" \
+  "*.c" \
+  "*$(O)" \
+  chitchat@exe@ \
+#IF(win32):  parrot-chitchat.exe \
+#IF(win32):  parrot-chitchat.iss \
+#IF(win32):  "setup-parrot-*.exe" \
+  installable_chitchat@exe@
+
+TEST_CLEANUPS :=
 
 # the default target
-chitchat.pbc: $(PARROT) $(SOURCES)
+build: chitchat.pbc
+
+all: build chitchat@exe@ installable
+
+chitchat.pbc: $(SOURCES)
 	$(PARROT) $(PARROT_ARGS) -o chitchat.pbc chitchat.pir
+
+chitchat@exe@: chitchat.pbc
+	$(PBC_TO_EXE) chitchat.pbc
 
 src/gen_grammar.pir: $(PERL6GRAMMAR) src/parser/grammar.pg
 	$(PARROT) $(PARROT_ARGS) $(PERL6GRAMMAR) \
 	    --output=src/gen_grammar.pir \
 	    src/parser/grammar.pg
 
-src/gen_actions.pir: $(NQP) $(PCT) src/parser/actions.pm
+src/gen_actions.pir: $(NQP) src/parser/actions.pm
 	$(PARROT) $(PARROT_ARGS) $(NQP) --output=src/gen_actions.pir \
 	    --target=pir src/parser/actions.pm
 
 src/gen_builtins.pir: $(BUILTINS_PIR)
-	$(CAT) $(BUILTINS_PIR) >src/gen_builtins.pir
+	$(CAT) $(BUILTINS_PIR) > src/gen_builtins.pir
 
-$(CHITCHAT_GROUP): $(PARROT) $(PMC_SOURCES)
-	cd $(PMC_DIR) && $(BUILD_DYNPMC) generate $(PMCS)
-	cd $(PMC_DIR) && $(BUILD_DYNPMC) compile $(PMCS)
-	cd $(PMC_DIR) && $(BUILD_DYNPMC) linklibs $(PMCS)
-	cd $(PMC_DIR) && $(BUILD_DYNPMC) copy --destination=$(PARROT_DYNEXT) $(PMCS)
+installable: installable_chitchat@exe@
 
-# regenerate the Makefile
+installable_chitchat@exe@: chitchat.pbc
+	$(PBC_TO_EXE) chitchat.pbc --install
+
 Makefile: config/makefiles/root.in
-	cd $(BUILD_DIR) && $(RECONFIGURE) --step=gen::languages --languages=chitchat
+	$(PERL) Configure.pl
 
 # This is a listing of all targets, that are meant to be called by users
 help:
 	@echo ""
 	@echo "Following targets are available for the user:"
 	@echo ""
-	@echo "  all:               chitchat.pbc"
+	@echo "  build:             chitchat.pbc"
 	@echo "                     This is the default."
+	@echo "  chitchat@exe@       Self-hosting binary not to be installed."
+	@echo "  all:               chitchat.pbc chitchat@exe@ installable"
+	@echo "  installable:       Create libs and self-hosting binaries to be installed."
+	@echo "  install:           Install the installable targets and docs."
+	@echo ""
 	@echo "Testing:"
 	@echo "  test:              Run the test suite."
+	@echo "  test-installable:  Test self-hosting targets."
 	@echo "  testclean:         Clean up test results."
 	@echo ""
 	@echo "Cleaning:"
@@ -93,34 +118,46 @@ help:
 	@echo "  help:              Print this help message."
 	@echo ""
 
-test: all
-	$(PERL) t/harness
+test: build
+	$(PERL) -I$(LIB_DIR)/tools/lib t/harness
 
-# this target has nothing to do
+# basic run for missing libs
+test-installable: installable
+	echo "1" | ./installable_chitchat@exe@
+
+install: installable
+	$(CP) installable_chitchat@exe@ $(BIN_DIR)/parrot-chitchat@exe@
+	$(CHMOD) 0755 $(BIN_DIR)/parrot-chitchat@exe@
+	-$(MKPATH) $(LIB_DIR)/languages/chitchat
+	$(CP) chitchat.pbc $(LIB_DIR)/languages/chitchat/chitchat.pbc
+#	-$(MKPATH) $(MANDIR)/man1
+#	$(POD2MAN) doc/running.pod > $(MANDIR)/man1/parrot-chitchat.1
+#	-$(MKPATH) $(DOC_DIR)/languages/chitchat
+#	$(CP) $(DOCS) $(DOC_DIR)/languages/chitchat
+
+uninstall:
+	$(RM_F) $(BIN_DIR)/parrot-chitchat@exe@
+	$(RM_RF) $(LIB_DIR)/languages/chitchat
+#	$(RM_F) $(MANDIR)/man1/parrot-chitchat.1
+#	$(RM_RF) $(DOC_DIR)/languages/chitchat
+
+win32-inno-installer: installable
+#	-$(MKPATH) man/man1
+#	$(POD2MAN) doc/running.pod > man/man1/parrot-chitchat.1
+#	-$(MKPATH) man/html
+#	pod2html --infile doc/running.pod --outfile man/html/parrot-chitchat.html
+	$(CP) installable_chitchat@exe@ parrot-chitchat.exe
+	$(PERL) -I$(LIB_DIR)/tools/lib $(LIB_DIR)/tools/dev/mk_inno_language.pl chitchat
+	iscc parrot-chitchat.iss
+
 testclean:
-
-CLEANUPS = \
-  chitchat.pbc \
-  src/gen_grammar.pir \
-  src/gen_actions.pir \
-  src/gen_builtins.pir \
-  $(PMC_DIR)/*.h \
-  $(PMC_DIR)/*.c \
-  $(PMC_DIR)/*.dump \
-  $(PMC_DIR)/*$(O) \
-  $(PMC_DIR)/*$(LOAD_EXT) \
-  $(PMC_DIR)/*.exp \
-  $(PMC_DIR)/*.ilk \
-  $(PMC_DIR)/*.manifest \
-  $(PMC_DIR)/*.pdb \
-  $(PMC_DIR)/*.lib \
-
+	$(RM_F) $(TEST_CLEANUPS)
 
 clean:
-	$(RM_RF) $(CLEANUPS)
+	$(RM_F) $(TEST_CLEANUPS) $(BUILD_CLEANUPS)
 
-realclean: clean
-	$(RM_RF) Makefile
+realclean:
+	$(RM_F) $(TEST_CLEANUPS) $(BUILD_CLEANUPS) Makefile
 
 distclean: realclean
 
@@ -128,3 +165,4 @@ distclean: realclean
 #   mode: makefile
 # End:
 # vim: ft=make:
+
