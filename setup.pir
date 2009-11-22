@@ -24,9 +24,9 @@ No Configure step, no Makefile generated.
     load_bytecode 'distutils.pbc'
 
     $P0 = new 'Hash'
-    $P0['name'] = 'Chitchat'
-    $P0['abstract'] = 'Chitchat'
-    $P0['description'] = 'Chitchat'
+    $P0['name'] = 'ChitChat'
+    $P0['abstract'] = 'ChitChat'
+    $P0['description'] = 'ChitChat'
     $P0['license_type'] = 'Artistic License 2.0'
     $P0['license_uri'] = 'http://www.perlfoundation.org/artistic_license_2_0'
     $P0['copyright_holder'] = 'Parrot Foundation'
@@ -46,13 +46,14 @@ No Configure step, no Makefile generated.
 
     $P3 = new 'Hash'
     $P4 = split "\n", <<'SOURCES'
-chitchat.pir
+src/chitchat.pir
 src/gen_grammar.pir
 src/gen_actions.pir
 src/builtins.pir
 src/builtins/say.pir
 SOURCES
-    $P3['chitchat.pbc'] = $P4
+    $P3['chitchat/chitchat.pbc'] = $P4
+    $P3['chitchat.pbc'] = 'chitchat.pir'
     $P0['pbc_pir'] = $P3
 
     $P5 = new 'Hash'
@@ -63,6 +64,9 @@ SOURCES
     $S0 = get_parrot()
     $S0 .= ' chitchat.pbc'
     $P0['prove_exec'] = $S0
+
+    # install
+    $P0['inst_lang'] = 'chitchat/chitchat.pbc'
 
     .tailcall setup(args :flat, $P0 :flat :named)
 .end
