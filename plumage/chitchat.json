@@ -5,16 +5,16 @@
     },
     "general"      : {
         "name"     : "chitchat",
-        "abstract" : "Chitchat",
+        "abstract" : "ChitChat",
         "version"  : "HEAD",
         "license"  : {
             "type" : "Artistic License 2.0",
             "uri"  : "http://www.perlfoundation.org/artistic_license_2_0"
         },
         "copyright_holder" : "Parrot Foundation",
-        "generated_by"     : "Francois Perrad <francois.perrad@gadz.org>",
+        "generated_by"     : "distutils",
         "keywords"         : [],
-        "description"      : "Chitchat"
+        "description"      : "ChitChat"
     },
     "instructions" : {
         "fetch"    : {
@@ -49,4 +49,3 @@
         }
     }
 }
-
