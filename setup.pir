@@ -68,7 +68,7 @@ SOURCES
     $P0['inst_lang'] = 'chitchat/chitchat.pbc'
 
     # dist
-    $P0['doc_files'] = 'README'
+    $P0['doc_files'] = 'MAINTAINER'
 
     .tailcall setup(args :flat, $P0 :flat :named)
 .end
