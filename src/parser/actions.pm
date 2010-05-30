@@ -21,7 +21,7 @@ class ChitChat::Grammar::Actions;
 method TOP($/) {
     my $past := PAST::Block.new( :blocktype('declaration'), :node( $/ ) );
     for $<exprs> {
-        $past.push( $( $_ ) );
+        $past.push( $_.ast );
     }
     make $past;
 }
@@ -29,36 +29,35 @@ method TOP($/) {
 method block($/) {
     my $past := PAST::Block.new( :blocktype('declaration'), :node($/) );
     for $<id> {
-        my $param := $( $_ );
+        my $param := $_.ast;
         $param.isdecl(1);
         $param.scope('parameter');
         $past.push($param);
     }
     if $<temps> {
-        my $temps := $( $<temps>[0] );
+        my $temps := $<temps>[0].ast;
         $past.push($temps);
     }
 
-    $past.push( $( $<exprs> ) );
+    $past.push( $<exprs>.ast );
 
     make $past;
 }
 
 method method($/) {
-    my $past := $( $<message> );
+    my $past := $<message>.ast;
     ## todo: pragma
 
     if $<temps> {
-        $past.push( $( $<temps>[0] ) );
+        $past.push( $<temps>[0].ast );
     }
-    $past.push( $( $<exprs> ) );
+    $past.push( $<exprs>.ast );
     make $past;
 }
 
 method message($/, $key) {
     if $key eq 'id' {
-        my $name := $( $<id> );
-        make PAST::Block.new( :name($name), :node($/) );
+        make PAST::Block.new( :name($<id>.ast), :node($/) );
     }
     elsif $key eq 'binsel' {
         ## create a new block for a binary operator; stick to
@@ -66,14 +65,14 @@ method message($/, $key) {
         make PAST::Block.new( :name('infix:' ~ ~$<binsel>), :node($/) );
     }
     elsif $key eq 'keysel' {
-        my $name := "";
+        my $name := '';
         for $<keysel> {
             $name := $name ~ ~$_;
         }
         my $past := PAST::Block.new( :name($name), :node($/) );
 
         for $<id> {
-            my $param := $( $_ );
+            my $param := $_.ast;
             $param.scope('parameter');
             $past.push($param);
         }
@@ -84,7 +83,7 @@ method message($/, $key) {
 method temps($/) {
     my $past := PAST::Stmts.new( :node($/) );
     for $<id> {
-        my $temp := $( $_ );
+        my $temp := $_.ast;
         $temp.scope('lexical');
         $temp.isdecl(1);
         $past.push( $temp );
@@ -95,24 +94,24 @@ method temps($/) {
 method exprs($/) {
     my $past := PAST::Stmts.new();
     for $<expr> {
-        $past.push( $( $_ ) );
+        $past.push( $_.ast );
     }
     make $past;
 }
 
 method expr($/) {
     # for $<id> {
-    #     $( $_ );
+    #     $_.ast;
     # }
-    make $( $<expr2> );
+    make $<expr2>.ast;
 }
 
 method expr2($/,$key) {
-    my $past := $( $/{$key} );
+    my $past := $/{$key}.ast;
     if $key eq 'msgexpr' {
         #my $statlist := PAST::Stmts.new();
         #for $<cascade> {
-        #    my $stat := $( $_ );
+        #    my $stat := $_.ast;
         #    $stat.unshift($past);
         #    $statlist.push($stat);
         #}
@@ -126,17 +125,17 @@ method expr2($/,$key) {
 
 
 method cascade($/,$key) {
-    make $( $/{$key} );
+    make $/{$key}.ast;
 }
 
 method msgexpr($/,$key) {
-    make $( $/{$key} );
+    make $/{$key}.ast;
 }
 
 method keyexpr($/) {
     my $past := PAST::Op.new( :pasttype('callmethod') );
-    $past.push( PAST::Var.new( :name( $( $<keyexpr2>).name() ), :scope('package') ) );
-    my @args := $( $<keymsg> );
+    $past.push( PAST::Var.new( :name( ~$<keyexpr2> ), :scope('package') ) );
+    my @args := $<keymsg>.ast;
     my $name := '';
     while +@args {
         $name := $name ~ ~@args.shift();
@@ -147,7 +146,7 @@ method keyexpr($/) {
 }
 
 method keyexpr2($/, $key) {
-    make $( $/{$key} );
+    make $/{$key}.ast;
 }
 
 method keymsg($/) {
@@ -156,16 +155,16 @@ method keymsg($/) {
     my $i := 0;
     while $i < $num {
         @past.push( ~$<keysel>[$i] );
-        @past.push( $($<keyexpr2>[$i]) );
+        @past.push( $<keyexpr2>[$i].ast );
         $i++;
     }
     make @past;
 }
 
 method binexpr($/) {
-    my $past := $( $<primary> );
+    my $past := $<primary>.ast;
     for $<binmsg> {
-        my $call := $( $_ );
+        my $call := $_.ast;
         $call.unshift($past);
         $past := $call;
     }
@@ -174,28 +173,28 @@ method binexpr($/) {
 
 method binmsg($/) {
     my $past := PAST::Op.new( :name('infix:' ~ ~$<binsel>), :pasttype('call') );
-    $past.push( $( $<primary> ) );
+    $past.push( $<primary>.ast );
     make $past;
 }
 
 method unaryexpr($/) {
-    make $( $<unit> );
+    make $<unit>.ast;
 }
 
 method primary($/,$key) {
-    make $( $<unit> );
+    make $<unit>.ast;
 }
 
 method unit($/,$key) {
-    make $( $/{$key} );
+    make $/{$key}.ast;
 }
 
 method literal($/,$key) {
-    make $( $/{$key} );
+    make $/{$key}.ast;
 }
 
 method arrayelem($/,$key) {
-    make $( $/{$key} );
+    make $/{$key}.ast;
 }
 
 method number($/) {
