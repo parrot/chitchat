@@ -42,8 +42,6 @@ object.
 
 .namespace [ 'ChitChat::Compiler' ]
 
-.loadlib 'chitchat_group'
-
 .sub 'onload' :anon :load
     load_bytecode 'PCT.pbc'
 
