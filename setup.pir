@@ -1,5 +1,5 @@
 #! /usr/local/bin/parrot
-# Copyright (C) 2009, Parrot Foundation.
+# Copyright (C) 2009-2010, Parrot Foundation.
 # $Id$
 
 =head1 NAME
@@ -38,6 +38,7 @@ No Configure step, no Makefile generated.
     $P1 = new 'Hash'
     $P1['src/gen_grammar.pir'] = 'src/parser/grammar.pg'
     $P0['pir_pge'] = $P1
+    $P0['pir_pge_flags'] = '--encoding=utf8'
 
     $P2 = new 'Hash'
     $P2['src/gen_actions.pir'] = 'src/parser/actions.pm'
